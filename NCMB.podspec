@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   s.license      = "Apache License, Version 2.0"
   s.author             = "NIFTY Corporation"
   s.platform     = :ios, "5.1"
-  s.source       = { :git => 'https://github.com/phisz/ncmb_ios', :tag => '2.3.5-fix#121' }
+  s.source       = { :git => 'https://github.com/phisz/ncmb_ios.git', :tag => '2.3.5-fix#121' }
   s.source_files  = "NCMB/**/*.{h,m,c}"
   s.frameworks = "Foundation", "UIKit", "MobileCoreServices", "AudioToolbox", "SystemConfiguration"
   s.requires_arc = true
