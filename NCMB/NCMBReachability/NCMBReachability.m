@@ -65,10 +65,16 @@ static void PrintReachabilityFlags(SCNetworkReachabilityFlags flags, const char*
 
 static NCMBReachability *ncmbReachability = nil;
 
+static NSObject *objForSynchronized;
+
 /**
  APIのエンドポイントを指定して、インターネット接続確認用のリファレンスを作成
  */
 - (NCMBReachability *)init{
+    if (objForSynchronized == nil) {
+        objForSynchronized = [[NSObject alloc] init];
+    }
+    
     self->internetReachabilityRef = SCNetworkReachabilityCreateWithName(NULL, [kHostName UTF8String]);
     return self;
 }
@@ -77,7 +83,7 @@ static NCMBReachability *ncmbReachability = nil;
  シングルトンクラスのインスタンスを返す
  */
 +(NCMBReachability*)sharedInstance{
-    @synchronized(self){
+    @synchronized(objForSynchronized){
         if (!ncmbReachability){
             ncmbReachability = [[NCMBReachability alloc] init];
             [ncmbReachability reachabilityWithHostName:kHostName];
@@ -104,7 +110,9 @@ static NCMBReachability *ncmbReachability = nil;
  電波状況を更新
  */
 +(void)updateFlags:(SCNetworkReachabilityFlags)flags{
-    [NCMBReachability sharedInstance]->reachabilityFlags = flags;
+    @synchronized (objForSynchronized) {
+        [NCMBReachability sharedInstance]->reachabilityFlags = flags;
+    }
 }
 
 /**
@@ -119,7 +127,9 @@ static NCMBReachability *ncmbReachability = nil;
                                                              error: NULL];
         //ファイルが無い場合は監視を終了
         if ([contents count] == 0){
-            ncmbReachability = nil;
+            @synchronized (objForSynchronized) {
+                ncmbReachability = nil;
+            }
         } else {
             for (NSString *fileName in contents){
                 [self executeCommand:fileName];
