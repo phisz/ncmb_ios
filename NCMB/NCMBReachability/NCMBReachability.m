@@ -25,6 +25,16 @@
 
 static NSString *const kHostName = @"mb.api.cloud.nifty.com";
 
+static NSObject *__objForSynchronized = nil;
+static NSObject* objForSynchronized() {
+    if (__objForSynchronized == nil) {
+        __objForSynchronized = [[NSObject alloc] init];
+    }
+    
+    return __objForSynchronized;
+}
+
+
 /**
  通信状況が変化した際に呼び出されるコールバックメソッド
  */
@@ -34,7 +44,9 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target,
     [NCMBReachability updateFlags:flags];
     
     //通信状況に応じてファイルに書き出した処理を実行するメソッドを呼び出す
-    [[NCMBReachability sharedInstance] reachabilityChanged];
+    @synchronized (objForSynchronized()) {
+        [[NCMBReachability sharedInstance] reachabilityChanged];
+    }
 }
 
 
@@ -65,16 +77,10 @@ static void PrintReachabilityFlags(SCNetworkReachabilityFlags flags, const char*
 
 static NCMBReachability *ncmbReachability = nil;
 
-static NSObject *objForSynchronized;
-
 /**
  APIのエンドポイントを指定して、インターネット接続確認用のリファレンスを作成
  */
 - (NCMBReachability *)init{
-    if (objForSynchronized == nil) {
-        objForSynchronized = [[NSObject alloc] init];
-    }
-    
     self->internetReachabilityRef = SCNetworkReachabilityCreateWithName(NULL, [kHostName UTF8String]);
     return self;
 }
@@ -83,7 +89,7 @@ static NSObject *objForSynchronized;
  シングルトンクラスのインスタンスを返す
  */
 +(NCMBReachability*)sharedInstance{
-    @synchronized(objForSynchronized){
+    @synchronized(objForSynchronized()){
         if (!ncmbReachability){
             ncmbReachability = [[NCMBReachability alloc] init];
             [ncmbReachability reachabilityWithHostName:kHostName];
@@ -110,7 +116,7 @@ static NSObject *objForSynchronized;
  電波状況を更新
  */
 +(void)updateFlags:(SCNetworkReachabilityFlags)flags{
-    @synchronized (objForSynchronized) {
+    @synchronized (objForSynchronized()) {
         [NCMBReachability sharedInstance]->reachabilityFlags = flags;
     }
 }
@@ -127,7 +133,7 @@ static NSObject *objForSynchronized;
                                                              error: NULL];
         //ファイルが無い場合は監視を終了
         if ([contents count] == 0){
-            @synchronized (objForSynchronized) {
+            @synchronized (objForSynchronized()) {
                 ncmbReachability = nil;
             }
         } else {
@@ -253,5 +259,5 @@ static NSObject *objForSynchronized;
     
     return NO;
 }
- 
+
 @end
